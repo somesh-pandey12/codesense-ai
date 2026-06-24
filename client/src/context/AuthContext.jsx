@@ -6,7 +6,7 @@ const AuthContext = createContext()
 axios.defaults.baseURL = 'http://localhost:5000/api'
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser]       = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -15,7 +15,10 @@ export function AuthProvider({ children }) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       axios.get('/auth/me')
         .then(res => setUser(res.data.user))
-        .catch(() => localStorage.removeItem('token'))
+        .catch(() => {
+          localStorage.removeItem('token')
+          delete axios.defaults.headers.common['Authorization']
+        })
         .finally(() => setLoading(false))
     } else {
       setLoading(false)
@@ -44,8 +47,20 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  // Used by Google OAuth callback page
+  const setUserFromToken = (userData) => {
+    setUser(userData)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
+      register,
+      logout,
+      setUserFromToken,
+    }}>
       {children}
     </AuthContext.Provider>
   )

@@ -16,11 +16,14 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   password: {
-    type: String,
-    required: [true, 'Password required'],
-    minlength: 6,
-    select: false   
-  },
+  type: String,
+  minlength: 6,
+  select: false
+},
+googleId: {
+  type: String,
+  default: ''
+},
   avatar: {
     type: String,
     default: ''
