@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Auth from './pages/Auth'
+import Dashboard from './pages/Dashboard'
+import Problems from './pages/Problems'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -20,6 +22,8 @@ function App() {
         }} />
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+<Route path="/problems" element={<PrivateRoute><Problems /></PrivateRoute>} />
           <Route path="/dashboard" element={
             <PrivateRoute>
               <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
