@@ -1,5 +1,6 @@
 import dotenv from 'dotenv'
 dotenv.config()
+console.log('GROQ_API_KEY loaded:', process.env.GROQ_API_KEY ? 'YES ✓' : 'NO ✗')
 
 import express from 'express'
 import mongoose from 'mongoose'
@@ -8,6 +9,7 @@ import passport from './config/passport.js'
 import authRoutes from './routes/auth.js'
 import problemRoutes from './routes/problems.js'
 import submissionRoutes from './routes/submissions.js'
+import reviewRoutes from './routes/review.js'
 
 const app = express()
 
@@ -24,6 +26,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth',        authRoutes)
 app.use('/api/problems',    problemRoutes)
 app.use('/api/submissions', submissionRoutes)
+app.use('/api/review', reviewRoutes)
 
 // 404 handler
 app.use((req, res) => {

@@ -3,36 +3,38 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
 import axios from 'axios'
 import Navbar from '../components/layout/Navbar'
+import AIReviewPanel from '../components/AIReviewPanel'
 import toast from 'react-hot-toast'
 import {
-  Play, Send, ChevronRight, CheckCircle2,
+  Send, ChevronRight, CheckCircle2,
   XCircle, Clock, Zap, RotateCcw, BookOpen
 } from 'lucide-react'
 
 const STARTER = {
-  javascript: '// Yahan apna solution likhein\n\n',
-  python:     '# Yahan apna solution likhein\n\n'
+  javascript: '// Write your solution here\n\n',
+  python:     '# Write your solution here\n\n'
 }
 
 const statusConfig = {
-  Accepted:      { color: 'text-emerald-400', bg: 'bg-emerald-950 border-emerald-800', icon: <CheckCircle2 size={16}/> },
-  'Wrong Answer':{ color: 'text-red-400',     bg: 'bg-red-950 border-red-800',         icon: <XCircle size={16}/> },
-  'Runtime Error':{ color: 'text-yellow-400', bg: 'bg-yellow-950 border-yellow-800',   icon: <XCircle size={16}/> },
-  Pending:       { color: 'text-gray-400',    bg: 'bg-gray-800 border-gray-700',       icon: <Clock size={16}/> },
+  Accepted:       { color: 'text-emerald-400', bg: 'bg-emerald-950 border-emerald-800', icon: <CheckCircle2 size={16}/> },
+  'Wrong Answer': { color: 'text-red-400',     bg: 'bg-red-950 border-red-800',         icon: <XCircle size={16}/> },
+  'Runtime Error':{ color: 'text-yellow-400',  bg: 'bg-yellow-950 border-yellow-800',   icon: <XCircle size={16}/> },
+  Pending:        { color: 'text-gray-400',    bg: 'bg-gray-800 border-gray-700',       icon: <Clock size={16}/> },
 }
 
 export default function Solve() {
-  const { slug }    = useParams()
-  const navigate    = useNavigate()
+  const { slug }   = useParams()
+  const navigate   = useNavigate()
 
-  const [problem,   setProblem]   = useState(null)
-  const [code,      setCode]      = useState('')
-  const [language,  setLanguage]  = useState('javascript')
-  const [tab,       setTab]       = useState('description') // description | submissions
-  const [result,    setResult]    = useState(null)
-  const [submitting,setSubmitting]= useState(false)
-  const [loading,   setLoading]   = useState(true)
-  const [history,   setHistory]   = useState([])
+  const [problem,    setProblem]    = useState(null)
+  const [code,       setCode]       = useState('')
+  const [language,   setLanguage]   = useState('javascript')
+  const [tab,        setTab]        = useState('description')
+  const [result,     setResult]     = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [loading,    setLoading]    = useState(true)
+  const [history,    setHistory]    = useState([])
+  const [showReview, setShowReview] = useState(false)
 
   useEffect(() => { fetchProblem() }, [slug])
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function Solve() {
       setProblem(data.problem)
       setCode(data.problem.starterCode?.javascript || STARTER.javascript)
     } catch {
-      toast.error('Problem load nahi hui')
+      toast.error('Problem load failed')
       navigate('/problems')
     } finally {
       setLoading(false)
@@ -66,9 +68,10 @@ export default function Solve() {
   }
 
   const handleSubmit = async () => {
-    if (!code.trim()) return toast.error('Pehle code likhein!')
+    if (!code.trim()) return toast.error('Please write some code first!')
     setSubmitting(true)
     setResult(null)
+    setShowReview(false)
     try {
       const { data } = await axios.post('/submissions', {
         problemId: problem._id,
@@ -76,13 +79,14 @@ export default function Solve() {
         language
       })
       setResult(data)
+      setShowReview(true)
       if (data.status === 'Accepted') {
         toast.success(`🎉 Accepted! +${data.xpEarned} XP`)
       } else {
         toast.error(`${data.status} — ${data.passedTests}/${data.totalTests} tests passed`)
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Submission fail hui')
+      toast.error(err.response?.data?.message || 'Submission failed')
     } finally {
       setSubmitting(false)
     }
@@ -139,7 +143,7 @@ export default function Solve() {
             ))}
           </div>
 
-          {/* Description Content */}
+          {/* Description Tab */}
           {tab === 'description' && (
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               <div>
@@ -154,11 +158,9 @@ export default function Solve() {
                 </div>
               </div>
 
-              <div>
-                <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm">
-                  {problem?.description}
-                </p>
-              </div>
+              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm">
+                {problem?.description}
+              </p>
 
               {/* Examples */}
               <div className="space-y-3">
@@ -204,15 +206,12 @@ export default function Solve() {
           {tab === 'submissions' && (
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {history.length === 0 ? (
-                <div className="text-center text-gray-500 py-12">
-                  Abhi tak koi submission nahi
-                </div>
+                <div className="text-center text-gray-500 py-12">No submissions yet</div>
               ) : (
                 history.map(sub => {
                   const sc = statusConfig[sub.status]
                   return (
-                    <div key={sub._id}
-                      className={`border rounded-xl p-4 ${sc.bg}`}>
+                    <div key={sub._id} className={`border rounded-xl p-4 ${sc.bg}`}>
                       <div className="flex items-center justify-between mb-2">
                         <div className={`flex items-center gap-1.5 font-medium text-sm ${sc.color}`}>
                           {sc.icon} {sub.status}
@@ -237,10 +236,10 @@ export default function Solve() {
           )}
         </div>
 
-        {/* RIGHT — Editor + Result */}
+        {/* RIGHT — Editor + Result + AI Review */}
         <div className="flex-1 flex flex-col overflow-hidden">
 
-          {/* Editor Toolbar */}
+          {/* Toolbar */}
           <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-800">
             <div className="flex items-center gap-2">
               <select
@@ -256,28 +255,23 @@ export default function Solve() {
                 onClick={() => setCode(problem?.starterCode?.[language] || STARTER[language])}
                 className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white
                   bg-gray-800 border border-gray-700 px-3 py-1.5 rounded-lg transition"
-                title="Code reset karo"
               >
                 <RotateCcw size={13}/> Reset
               </button>
             </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500
-                  disabled:opacity-50 text-white text-sm font-medium
-                  px-5 py-2 rounded-lg transition-all"
-              >
-                <Send size={14}/>
-                {submitting ? 'Running...' : 'Submit'}
-              </button>
-            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500
+                disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg transition-all"
+            >
+              <Send size={14}/>
+              {submitting ? 'Running...' : 'Submit'}
+            </button>
           </div>
 
-          {/* Monaco Editor */}
-          <div className="flex-1 overflow-hidden">
+          {/* Monaco Editor — flexible height */}
+          <div className={`overflow-hidden transition-all ${result || showReview ? 'flex-[2]' : 'flex-1'}`}>
             <Editor
               height="100%"
               language={language}
@@ -296,17 +290,14 @@ export default function Solve() {
                 tabSize: 2,
                 wordWrap: 'on',
                 automaticLayout: true,
-                suggestOnTriggerCharacters: true,
-                quickSuggestions: true,
               }}
             />
           </div>
 
           {/* Result Panel */}
           {result && (
-            <div className="border-t border-gray-800 bg-gray-900 max-h-64 overflow-y-auto">
-              {/* Result Header */}
-              <div className={`flex items-center justify-between px-5 py-3 border-b border-gray-800`}>
+            <div className="border-t border-gray-800 bg-gray-900 overflow-y-auto max-h-48">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-800">
                 <div className={`flex items-center gap-2 font-medium ${statusConfig[result.status]?.color}`}>
                   {statusConfig[result.status]?.icon}
                   {result.status}
@@ -324,15 +315,12 @@ export default function Solve() {
                 </div>
               </div>
 
-              {/* Test Cases Results */}
+              {/* Test Cases */}
               <div className="p-4 grid grid-cols-1 gap-2">
                 {result.testResults?.map((t, i) => (
                   <div key={i}
                     className={`rounded-xl border px-4 py-3 text-sm
-                      ${t.passed
-                        ? 'bg-emerald-950 border-emerald-900'
-                        : 'bg-red-950 border-red-900'
-                      }`}>
+                      ${t.passed ? 'bg-emerald-950 border-emerald-900' : 'bg-red-950 border-red-900'}`}>
                     <div className="flex items-center justify-between mb-1">
                       <span className={`font-medium flex items-center gap-1.5
                         ${t.passed ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -356,6 +344,18 @@ export default function Solve() {
               </div>
             </div>
           )}
+
+          {/* AI Review Panel — result ke bilkul neeche, editor ke bahar */}
+          {showReview && problem && (
+            <div className="border-t-2 border-violet-800 bg-gray-950 overflow-y-auto max-h-96">
+              <AIReviewPanel
+                problemId={problem._id}
+                code={code}
+                language={language}
+              />
+            </div>
+          )}
+
         </div>
       </div>
     </div>
