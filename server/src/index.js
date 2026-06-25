@@ -10,6 +10,9 @@ import authRoutes from './routes/auth.js'
 import problemRoutes from './routes/problems.js'
 import submissionRoutes from './routes/submissions.js'
 import reviewRoutes from './routes/review.js'
+import leaderboardRoutes from './routes/leaderboard.js'
+import statsRoutes from './routes/stats.js'
+
 
 const app = express()
 
@@ -27,6 +30,8 @@ app.use('/api/auth',        authRoutes)
 app.use('/api/problems',    problemRoutes)
 app.use('/api/submissions', submissionRoutes)
 app.use('/api/review', reviewRoutes)
+app.use('/api/leaderboard', leaderboardRoutes)
+app.use('/api/stats', statsRoutes)
 
 // 404 handler
 app.use((req, res) => {
