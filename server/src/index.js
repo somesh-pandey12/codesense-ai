@@ -4,24 +4,30 @@ dotenv.config()
 import express from 'express'
 import mongoose from 'mongoose'
 import cors from 'cors'
-
+import passport from './config/passport.js'
 import authRoutes from './routes/auth.js'
 import problemRoutes from './routes/problems.js'
 import submissionRoutes from './routes/submissions.js'
-import passport from './config/passport.js'
 
 const app = express()
 
+console.log('GOOGLE_CLIENT_ID loaded:',     process.env.GOOGLE_CLIENT_ID     ? 'YES ✓' : 'NO ✗')
+console.log('GOOGLE_CLIENT_SECRET loaded:', process.env.GOOGLE_CLIENT_SECRET ? 'YES ✓' : 'NO ✗')
+
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }))
 app.use(express.json())
-app.use('/api/auth', authRoutes)
-app.use('/api/problems', problemRoutes)
-app.use('/api/submissions', submissionRoutes)
 app.use(passport.initialize())
 
-// Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'CodeSense API running' })
+})
+app.use('/api/auth',        authRoutes)
+app.use('/api/problems',    problemRoutes)
+app.use('/api/submissions', submissionRoutes)
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ message: `Route ${req.originalUrl} not found` })
 })
 
 mongoose.connect(process.env.MONGO_URI)
@@ -31,4 +37,4 @@ mongoose.connect(process.env.MONGO_URI)
       console.log(`Server running on port ${process.env.PORT || 5000}`)
     })
   })
-  .catch(err => console.error(err))
+  .catch(err => console.error('DB Error:', err))

@@ -16,14 +16,14 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   password: {
-  type: String,
-  minlength: 6,
-  select: false
-},
-googleId: {
-  type: String,
-  default: ''
-},
+    type: String,
+    minlength: 6,
+    select: false
+  },
+  googleId: {
+    type: String,
+    default: ''
+  },
   avatar: {
     type: String,
     default: ''
@@ -50,11 +50,12 @@ googleId: {
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next()
+  if (!this.password || this.password.startsWith('google_')) return next()
+
   this.password = await bcrypt.hash(this.password, 12)
   next()
 })
 
-// Password compare method
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password)
 }
