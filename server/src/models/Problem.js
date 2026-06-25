@@ -1,6 +1,11 @@
 import mongoose from 'mongoose'
 
 const problemSchema = new mongoose.Schema({
+  company:       [{ type: String }],
+hints:         [{ type: String }],
+acceptanceRate:{ type: Number, default: 0 },
+timeLimit:     { type: Number, default: 1000 },
+memoryLimit:   { type: Number, default: 256 },
   title: { type: String, required: true, trim: true },
   slug: { type: String, required: true, unique: true },
   description: { type: String, required: true },
