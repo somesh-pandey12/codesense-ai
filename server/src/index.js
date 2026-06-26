@@ -12,6 +12,7 @@ import submissionRoutes from './routes/submissions.js'
 import reviewRoutes from './routes/review.js'
 import leaderboardRoutes from './routes/leaderboard.js'
 import statsRoutes from './routes/stats.js'
+import contestRoutes from './routes/contests.js'
 
 
 const app = express()
@@ -32,6 +33,7 @@ app.use('/api/submissions', submissionRoutes)
 app.use('/api/review', reviewRoutes)
 app.use('/api/leaderboard', leaderboardRoutes)
 app.use('/api/stats', statsRoutes)
+app.use('/api/contests', contestRoutes)
 
 // 404 handler
 app.use((req, res) => {

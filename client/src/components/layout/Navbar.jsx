@@ -32,6 +32,7 @@ export default function Navbar() {
               { label: 'Problems', path: '/problems' },
               { label: 'Dashboard', path: '/dashboard' },
               { label: 'Leaderboard', path: '/leaderboard' },
+              { label: 'Contests', path: '/contests' },
             ].map(({ label, path }) => (
               <Link
                 key={path}

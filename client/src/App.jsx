@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard'
 import Problems from './pages/Problems'
 import AuthCallback from './pages/AuthCallback'
 import Leaderboard from './pages/Leaderboard'
+import Contests from './pages/Contests'
+import ContestArena from './pages/ContestArena'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -30,6 +32,8 @@ function App() {
           <Route path="/problems" element={<PrivateRoute><Problems /></PrivateRoute>} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
+          <Route path="/contests" element={<PrivateRoute><Contests /></PrivateRoute>} />
+          <Route path="/contests/:id" element={<PrivateRoute><ContestArena /></PrivateRoute>} />
 
           <Route path="/dashboard" element={
             <PrivateRoute>
