@@ -29,10 +29,10 @@ export default function Navbar() {
           {/* Nav Links */}
           <div className="hidden md:flex items-center gap-1">
             {[
-              { label: 'Problems', path: '/problems' },
-              { label: 'Dashboard', path: '/dashboard' },
+              { label: 'Problems',    path: '/problems'    },
+              { label: 'Dashboard',   path: '/dashboard'   },
               { label: 'Leaderboard', path: '/leaderboard' },
-              { label: 'Contests', path: '/contests' },
+              { label: 'Contests',    path: '/contests'    },
             ].map(({ label, path }) => (
               <Link
                 key={path}
@@ -47,16 +47,23 @@ export default function Navbar() {
 
           {/* User Info */}
           <div className="flex items-center gap-3">
+
             {/* XP Badge */}
-            <div className="hidden sm:flex items-center gap-1.5 bg-indigo-950 
+            <div className="hidden sm:flex items-center gap-1.5 bg-indigo-950
               border border-indigo-800 rounded-full px-3 py-1.5">
               <Zap size={13} className="text-indigo-400" />
-              <span className="text-indigo-300 text-xs font-medium">{user?.xp || 0} XP</span>
+              <span className="text-indigo-300 text-xs font-medium">
+                {user?.xp || 0} XP
+              </span>
             </div>
 
-            {/* Avatar */}
-            <div className="flex items-center gap-2 bg-gray-800 rounded-full 
-              px-3 py-1.5 border border-gray-700">
+            {/* Avatar — profile pe navigate karo */}
+            <div
+              onClick={() => navigate(`/profile/${user?.id || user?._id}`)}
+              className="flex items-center gap-2 bg-gray-800 rounded-full
+                px-3 py-1.5 border border-gray-700 cursor-pointer
+                hover:border-gray-500 transition"
+            >
               <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center">
                 <User size={12} className="text-white" />
               </div>
@@ -68,13 +75,14 @@ export default function Navbar() {
             {/* Logout */}
             <button
               onClick={handleLogout}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 
+              className="p-2 text-gray-400 hover:text-white hover:bg-gray-800
                 rounded-lg transition-all duration-200"
               title="Logout"
             >
               <LogOut size={18} />
             </button>
           </div>
+
         </div>
       </div>
     </nav>

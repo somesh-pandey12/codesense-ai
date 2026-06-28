@@ -4,6 +4,10 @@ import Editor from '@monaco-editor/react'
 import axios from 'axios'
 import Navbar from '../components/layout/Navbar'
 import AIReviewPanel from '../components/AIReviewPanel'
+import TimerBar from '../components/TimerBar'
+import HintsPanel from '../components/HintsPanel'
+import ProblemStats from '../components/ProblemStats'
+import ComplexityChart from '../components/ComplexityChart'
 import toast from 'react-hot-toast'
 import {
   Send, ChevronRight, CheckCircle2,
@@ -16,25 +20,27 @@ const STARTER = {
 }
 
 const statusConfig = {
-  Accepted:       { color: 'text-emerald-400', bg: 'bg-emerald-950 border-emerald-800', icon: <CheckCircle2 size={16}/> },
-  'Wrong Answer': { color: 'text-red-400',     bg: 'bg-red-950 border-red-800',         icon: <XCircle size={16}/> },
-  'Runtime Error':{ color: 'text-yellow-400',  bg: 'bg-yellow-950 border-yellow-800',   icon: <XCircle size={16}/> },
-  Pending:        { color: 'text-gray-400',    bg: 'bg-gray-800 border-gray-700',       icon: <Clock size={16}/> },
+  Accepted:        { color: 'text-emerald-400', bg: 'bg-emerald-950 border-emerald-800', icon: <CheckCircle2 size={16}/> },
+  'Wrong Answer':  { color: 'text-red-400',     bg: 'bg-red-950 border-red-800',         icon: <XCircle size={16}/> },
+  'Runtime Error': { color: 'text-yellow-400',  bg: 'bg-yellow-950 border-yellow-800',   icon: <XCircle size={16}/> },
+  Pending:         { color: 'text-gray-400',    bg: 'bg-gray-800 border-gray-700',       icon: <Clock size={16}/> },
 }
 
 export default function Solve() {
   const { slug }   = useParams()
   const navigate   = useNavigate()
 
-  const [problem,    setProblem]    = useState(null)
-  const [code,       setCode]       = useState('')
-  const [language,   setLanguage]   = useState('javascript')
-  const [tab,        setTab]        = useState('description')
-  const [result,     setResult]     = useState(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [loading,    setLoading]    = useState(true)
-  const [history,    setHistory]    = useState([])
-  const [showReview, setShowReview] = useState(false)
+  const [problem,       setProblem]       = useState(null)
+  const [code,          setCode]          = useState('')
+  const [language,      setLanguage]      = useState('javascript')
+  const [tab,           setTab]           = useState('description')
+  const [result,        setResult]        = useState(null)
+  const [submitting,    setSubmitting]    = useState(false)
+  const [loading,       setLoading]       = useState(true)
+  const [history,       setHistory]       = useState([])
+  const [showReview,    setShowReview]    = useState(false)
+  const [aiComplexity,  setAiComplexity]  = useState({ time: null, space: null })
+  const [showComplexity,setShowComplexity]= useState(false)
 
   useEffect(() => { fetchProblem() }, [slug])
   useEffect(() => {
@@ -72,6 +78,8 @@ export default function Solve() {
     setSubmitting(true)
     setResult(null)
     setShowReview(false)
+    setShowComplexity(false)
+    setAiComplexity({ time: null, space: null })
     try {
       const { data } = await axios.post('/submissions', {
         problemId: problem._id,
@@ -89,6 +97,22 @@ export default function Solve() {
       toast.error(err.response?.data?.message || 'Submission failed')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  // AI review se complexity milne ke baad chart update karo
+  const handleReviewComplete = (review) => {
+    if (review?.timeComplexity || review?.spaceComplexity) {
+      const extractBigO = (str) => {
+        if (!str) return null
+        const match = str.match(/O\([^)]+\)/)
+        return match ? match[0] : null
+      }
+      setAiComplexity({
+        time:  extractBigO(review.timeComplexity),
+        space: extractBigO(review.spaceComplexity)
+      })
+      setShowComplexity(true)
     }
   }
 
@@ -145,60 +169,118 @@ export default function Solve() {
 
           {/* Description Tab */}
           {tab === 'description' && (
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div>
-                <h1 className="text-xl font-bold text-white mb-2">{problem?.title}</h1>
-                <div className="flex flex-wrap gap-2">
-                  {problem?.tags.map(tag => (
-                    <span key={tag}
-                      className="text-xs px-2.5 py-1 bg-gray-800 text-gray-400 rounded-lg border border-gray-700">
-                      {tag}
-                    </span>
+            <div className="flex-1 overflow-y-auto">
+
+              <div className="p-6 space-y-6">
+                {/* Title + Tags */}
+                <div>
+                  <h1 className="text-xl font-bold text-white mb-2">{problem?.title}</h1>
+                  <div className="flex flex-wrap gap-2">
+                    {problem?.tags.map(tag => (
+                      <span key={tag}
+                        className="text-xs px-2.5 py-1 bg-gray-800 text-gray-400 rounded-lg border border-gray-700">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Company tags */}
+                {problem?.company?.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">
+                      Asked by
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {problem.company.map(c => (
+                        <span key={c}
+                          className="text-xs px-2.5 py-1 bg-blue-950 text-blue-400
+                            rounded-lg border border-blue-900">
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Description */}
+                <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm">
+                  {problem?.description}
+                </p>
+
+                {/* Examples */}
+                <div className="space-y-3">
+                  <h3 className="text-white font-medium">Examples</h3>
+                  {problem?.examples.map((ex, i) => (
+                    <div key={i}
+                      className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-2">
+                      <div>
+                        <span className="text-xs text-gray-500 uppercase tracking-wider">Input</span>
+                        <pre className="text-sm text-gray-300 font-mono mt-1">{ex.input}</pre>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-500 uppercase tracking-wider">Output</span>
+                        <pre className="text-sm text-emerald-400 font-mono mt-1">{ex.output}</pre>
+                      </div>
+                      {ex.explanation && (
+                        <div>
+                          <span className="text-xs text-gray-500 uppercase tracking-wider">
+                            Explanation
+                          </span>
+                          <p className="text-sm text-gray-400 mt-1">{ex.explanation}</p>
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
-              </div>
 
-              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm">
-                {problem?.description}
-              </p>
-
-              {/* Examples */}
-              <div className="space-y-3">
-                <h3 className="text-white font-medium">Examples</h3>
-                {problem?.examples.map((ex, i) => (
-                  <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-2">
-                    <div>
-                      <span className="text-xs text-gray-500 uppercase tracking-wider">Input</span>
-                      <pre className="text-sm text-gray-300 font-mono mt-1">{ex.input}</pre>
-                    </div>
-                    <div>
-                      <span className="text-xs text-gray-500 uppercase tracking-wider">Output</span>
-                      <pre className="text-sm text-emerald-400 font-mono mt-1">{ex.output}</pre>
-                    </div>
-                    {ex.explanation && (
-                      <div>
-                        <span className="text-xs text-gray-500 uppercase tracking-wider">Explanation</span>
-                        <p className="text-sm text-gray-400 mt-1">{ex.explanation}</p>
-                      </div>
-                    )}
+                {/* Constraints */}
+                {problem?.constraints?.length > 0 && (
+                  <div>
+                    <h3 className="text-white font-medium mb-2">Constraints</h3>
+                    <ul className="space-y-1">
+                      {problem.constraints.map((c, i) => (
+                        <li key={i} className="text-sm text-gray-400 flex items-start gap-2">
+                          <span className="text-indigo-500 mt-0.5">•</span>
+                          <code className="font-mono">{c}</code>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                ))}
+                )}
+
+                {/* Time + Memory Limit */}
+                <div className="flex gap-3">
+                  <div className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex-1">
+                    <p className="text-xs text-gray-500 mb-1">Time Limit</p>
+                    <p className="text-white text-sm font-medium">
+                      {problem?.timeLimit || 1000} ms
+                    </p>
+                  </div>
+                  <div className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex-1">
+                    <p className="text-xs text-gray-500 mb-1">Memory Limit</p>
+                    <p className="text-white text-sm font-medium">
+                      {problem?.memoryLimit || 256} MB
+                    </p>
+                  </div>
+                  <div className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex-1">
+                    <p className="text-xs text-gray-500 mb-1">Acceptance</p>
+                    <p className={`text-sm font-medium ${
+                      (problem?.acceptanceRate || 0) > 50 ? 'text-emerald-400' :
+                      (problem?.acceptanceRate || 0) > 35 ? 'text-yellow-400' : 'text-red-400'
+                    }`}>
+                      {problem?.acceptanceRate?.toFixed(1) || '0.0'}%
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              {/* Constraints */}
-              {problem?.constraints?.length > 0 && (
-                <div>
-                  <h3 className="text-white font-medium mb-2">Constraints</h3>
-                  <ul className="space-y-1">
-                    {problem.constraints.map((c, i) => (
-                      <li key={i} className="text-sm text-gray-400 flex items-start gap-2">
-                        <span className="text-indigo-500 mt-0.5">•</span>
-                        <code className="font-mono">{c}</code>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {/* Hints Panel */}
+              <HintsPanel hints={problem?.hints || []} />
+
+              {/* Problem Stats */}
+              <ProblemStats slug={slug} />
+
             </div>
           )}
 
@@ -206,7 +288,9 @@ export default function Solve() {
           {tab === 'submissions' && (
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {history.length === 0 ? (
-                <div className="text-center text-gray-500 py-12">No submissions yet</div>
+                <div className="text-center text-gray-500 py-12">
+                  No submissions yet
+                </div>
               ) : (
                 history.map(sub => {
                   const sc = statusConfig[sub.status]
@@ -258,7 +342,11 @@ export default function Solve() {
               >
                 <RotateCcw size={13}/> Reset
               </button>
+
+              {/* Timer */}
+              <TimerBar />
             </div>
+
             <button
               onClick={handleSubmit}
               disabled={submitting}
@@ -270,8 +358,9 @@ export default function Solve() {
             </button>
           </div>
 
-          {/* Monaco Editor — flexible height */}
-          <div className={`overflow-hidden transition-all ${result || showReview ? 'flex-[2]' : 'flex-1'}`}>
+          {/* Monaco Editor */}
+          <div className={`overflow-hidden transition-all
+            ${result || showReview ? 'flex-[2]' : 'flex-1'}`}>
             <Editor
               height="100%"
               language={language}
@@ -298,7 +387,8 @@ export default function Solve() {
           {result && (
             <div className="border-t border-gray-800 bg-gray-900 overflow-y-auto max-h-48">
               <div className="flex items-center justify-between px-5 py-3 border-b border-gray-800">
-                <div className={`flex items-center gap-2 font-medium ${statusConfig[result.status]?.color}`}>
+                <div className={`flex items-center gap-2 font-medium
+                  ${statusConfig[result.status]?.color}`}>
                   {statusConfig[result.status]?.icon}
                   {result.status}
                 </div>
@@ -320,7 +410,10 @@ export default function Solve() {
                 {result.testResults?.map((t, i) => (
                   <div key={i}
                     className={`rounded-xl border px-4 py-3 text-sm
-                      ${t.passed ? 'bg-emerald-950 border-emerald-900' : 'bg-red-950 border-red-900'}`}>
+                      ${t.passed
+                        ? 'bg-emerald-950 border-emerald-900'
+                        : 'bg-red-950 border-red-900'
+                      }`}>
                     <div className="flex items-center justify-between mb-1">
                       <span className={`font-medium flex items-center gap-1.5
                         ${t.passed ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -333,10 +426,18 @@ export default function Solve() {
                     </div>
                     {!t.passed && (
                       <div className="mt-2 space-y-1 font-mono text-xs">
-                        <div className="text-gray-400">Input: <span className="text-gray-300">{t.input}</span></div>
-                        <div className="text-gray-400">Expected: <span className="text-emerald-400">{t.expected}</span></div>
-                        <div className="text-gray-400">Got: <span className="text-red-400">{t.actual}</span></div>
-                        {t.error && <div className="text-yellow-400 mt-1">Error: {t.error}</div>}
+                        <div className="text-gray-400">
+                          Input: <span className="text-gray-300">{t.input}</span>
+                        </div>
+                        <div className="text-gray-400">
+                          Expected: <span className="text-emerald-400">{t.expected}</span>
+                        </div>
+                        <div className="text-gray-400">
+                          Got: <span className="text-red-400">{t.actual}</span>
+                        </div>
+                        {t.error && (
+                          <div className="text-yellow-400 mt-1">Error: {t.error}</div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -345,13 +446,24 @@ export default function Solve() {
             </div>
           )}
 
-          {/* AI Review Panel — result ke bilkul neeche, editor ke bahar */}
+          {/* AI Review Panel */}
           {showReview && problem && (
             <div className="border-t-2 border-violet-800 bg-gray-950 overflow-y-auto max-h-96">
               <AIReviewPanel
                 problemId={problem._id}
                 code={code}
                 language={language}
+                onReviewComplete={handleReviewComplete}
+              />
+            </div>
+          )}
+
+          {/* Complexity Chart */}
+          {showComplexity && (
+            <div className="border-t border-gray-800 bg-gray-950">
+              <ComplexityChart
+                timeComplexity={aiComplexity.time}
+                spaceComplexity={aiComplexity.space}
               />
             </div>
           )}

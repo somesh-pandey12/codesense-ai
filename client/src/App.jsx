@@ -9,6 +9,7 @@ import AuthCallback from './pages/AuthCallback'
 import Leaderboard from './pages/Leaderboard'
 import Contests from './pages/Contests'
 import ContestArena from './pages/ContestArena'
+import Profile from './pages/Profile'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -34,6 +35,8 @@ function App() {
           <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
           <Route path="/contests" element={<PrivateRoute><Contests /></PrivateRoute>} />
           <Route path="/contests/:id" element={<PrivateRoute><ContestArena /></PrivateRoute>} />
+          <Route path="/profile"     element={<PrivateRoute><Profile /></PrivateRoute>} />
+<Route path="/profile/:userId" element={<PrivateRoute><Profile /></PrivateRoute>} />
 
           <Route path="/dashboard" element={
             <PrivateRoute>

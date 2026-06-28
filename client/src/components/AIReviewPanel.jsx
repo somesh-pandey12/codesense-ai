@@ -8,22 +8,22 @@ import {
 } from 'lucide-react'
 
 const severityConfig = {
-  error:      { color: 'text-red-400',    bg: 'bg-red-950 border-red-900',      icon: <AlertTriangle size={13}/> },
-  warning:    { color: 'text-yellow-400', bg: 'bg-yellow-950 border-yellow-900', icon: <AlertTriangle size={13}/> },
-  suggestion: { color: 'text-blue-400',   bg: 'bg-blue-950 border-blue-900',     icon: <Info size={13}/> },
+  error:      { color: 'text-red-400',    bg: 'bg-red-950 border-red-900',       icon: <AlertTriangle size={13}/> },
+  warning:    { color: 'text-yellow-400', bg: 'bg-yellow-950 border-yellow-900',  icon: <AlertTriangle size={13}/> },
+  suggestion: { color: 'text-blue-400',   bg: 'bg-blue-950 border-blue-900',      icon: <Info size={13}/> },
 }
 
 const verdictConfig = {
-  'Good Solution':       { color: 'text-emerald-400', bg: 'bg-emerald-950 border-emerald-800' },
-  'Needs Improvement':   { color: 'text-yellow-400',  bg: 'bg-yellow-950 border-yellow-800'  },
-  'Incorrect Approach':  { color: 'text-red-400',     bg: 'bg-red-950 border-red-800'        },
-  'Review unavailable':  { color: 'text-gray-400',    bg: 'bg-gray-800 border-gray-700'      },
+  'Good Solution':      { color: 'text-emerald-400', bg: 'bg-emerald-950 border-emerald-800' },
+  'Needs Improvement':  { color: 'text-yellow-400',  bg: 'bg-yellow-950 border-yellow-800'  },
+  'Incorrect Approach': { color: 'text-red-400',     bg: 'bg-red-950 border-red-800'        },
+  'Review unavailable': { color: 'text-gray-400',    bg: 'bg-gray-800 border-gray-700'      },
 }
 
-export default function AIReviewPanel({ problemId, code, language }) {
-  const [review,      setReview]      = useState(null)
-  const [loading,     setLoading]     = useState(false)
-  const [showCode,    setShowCode]    = useState(false)
+export default function AIReviewPanel({ problemId, code, language, onReviewComplete }) {
+  const [review,   setReview]   = useState(null)
+  const [loading,  setLoading]  = useState(false)
+  const [showCode, setShowCode] = useState(false)
 
   const handleReview = async () => {
     if (!code.trim()) return toast.error('Write some code first!')
@@ -33,6 +33,9 @@ export default function AIReviewPanel({ problemId, code, language }) {
       const { data } = await axios.post('/review', { problemId, code, language })
       setReview(data.review)
       toast.success('AI Review ready!')
+
+      // Parent ko review data bhejo — complexity chart trigger hoga
+      if (onReviewComplete) onReviewComplete(data.review)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Review failed')
     } finally {
@@ -70,7 +73,9 @@ export default function AIReviewPanel({ problemId, code, language }) {
               -translate-x-1/2 -translate-y-1/2" />
           </div>
           <p className="text-gray-400 text-sm">AI is analyzing your code...</p>
-          <p className="text-gray-600 text-xs">Checking complexity, bugs, and best practices</p>
+          <p className="text-gray-600 text-xs">
+            Checking complexity, bugs, and best practices
+          </p>
         </div>
       )}
 
@@ -78,7 +83,7 @@ export default function AIReviewPanel({ problemId, code, language }) {
       {review && (
         <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
 
-          {/* Header — Verdict + Score */}
+          {/* Verdict + Score */}
           <div className={`flex items-center justify-between p-4 rounded-xl border ${verdict.bg}`}>
             <div>
               <p className="text-xs text-gray-400 mb-1">AI Verdict</p>
@@ -138,7 +143,8 @@ export default function AIReviewPanel({ problemId, code, language }) {
               {review.issues.map((issue, i) => {
                 const sc = severityConfig[issue.severity] || severityConfig.suggestion
                 return (
-                  <div key={i} className={`flex items-start gap-2.5 p-3 rounded-xl border text-sm ${sc.bg}`}>
+                  <div key={i}
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border text-sm ${sc.bg}`}>
                     <span className={`mt-0.5 flex-shrink-0 ${sc.color}`}>{sc.icon}</span>
                     <div>
                       {issue.line && (
@@ -163,7 +169,6 @@ export default function AIReviewPanel({ problemId, code, language }) {
                 {review.optimizedApproach}
               </p>
 
-              {/* Optimized Code Toggle */}
               {review.optimizedCode && (
                 <button
                   onClick={() => setShowCode(!showCode)}
